@@ -203,6 +203,7 @@ function convertNumber() {
     
     showPopup();
     setupSaveLaoImageButton();
+    setupShareLaoImageButton(); // เพิ่มฟังก์ชันแชร์
 }
 
 // --- Popup Button Functions ---
@@ -265,6 +266,7 @@ function toggleSquareTopPopup() {
     }
 }
 
+// --- Save and Share Functions ---
 function setupSaveLaoImageButton() {
     const saveBtn = document.getElementById("saveLaoAsImageButton");
     const newSaveBtn = saveBtn.cloneNode(true);
@@ -300,6 +302,55 @@ function setupSaveLaoImageButton() {
                 if (controlsElement) controlsElement.style.display = 'flex';
             });
         }, 100);
+    });
+}
+
+// เพิ่มฟังก์ชันแชร์สำหรับป๊อปอัพลาว
+function setupShareLaoImageButton() {
+    const shareBtn = document.getElementById("shareLaoImageButton");
+    if (!shareBtn) return;
+
+    // UX: ซ่อนปุ่มถ้าเบราว์เซอร์ไม่รองรับ Web Share
+    if (!navigator.share) {
+        shareBtn.style.display = "none";
+        return;
+    }
+
+    const newBtn = shareBtn.cloneNode(true);
+    shareBtn.parentNode.replaceChild(newBtn, shareBtn);
+
+    newBtn.addEventListener("click", async () => {
+        if (!navigator.share) {
+            alert("อุปกรณ์นี้ไม่รองรับการส่งต่อ");
+            return;
+        }
+
+        const captureElement = document.querySelector("#popupOverlay .popup-content");
+        const controls = captureElement.querySelector('.popup-buttons-container');
+        if (controls) controls.style.display = "none";
+
+        try {
+            const canvas = await html2canvas(captureElement, {
+                scale: 3,
+                backgroundColor: '#fffde7',
+                useCORS: true
+            });
+
+            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+            const file = new File([blob], "lottery-result.png", { type: "image/png" });
+
+            await navigator.share({
+                files: [file]
+            });
+
+        } catch (err) {
+            console.error(err);
+            if (err.name !== 'AbortError') {
+                alert("ไม่สามารถส่งต่อได้");
+            }
+        } finally {
+            if (controls) controls.style.display = "flex";
+        }
     });
 }
 
@@ -350,6 +401,7 @@ function displayThaiResults() {
     
     showThaiPopup();
     setupSaveThaiImageButton();
+    setupShareThaiImageButton(); // เพิ่มฟังก์ชันแชร์
 }
 
 function setupSaveThaiImageButton() {
@@ -390,6 +442,55 @@ function setupSaveThaiImageButton() {
                 if (controlsElement) { controlsElement.style.display = 'flex'; }
             });
         }, 100);
+    });
+}
+
+// เพิ่มฟังก์ชันแชร์สำหรับป๊อปอัพไทย
+function setupShareThaiImageButton() {
+    const shareBtn = document.getElementById("shareThaiImageButton");
+    if (!shareBtn) return;
+
+    // UX: ซ่อนปุ่มถ้าเบราว์เซอร์ไม่รองรับ Web Share
+    if (!navigator.share) {
+        shareBtn.style.display = "none";
+        return;
+    }
+
+    const newBtn = shareBtn.cloneNode(true);
+    shareBtn.parentNode.replaceChild(newBtn, shareBtn);
+
+    newBtn.addEventListener("click", async () => {
+        if (!navigator.share) {
+            alert("อุปกรณ์นี้ไม่รองรับการส่งต่อ");
+            return;
+        }
+
+        const captureElement = document.querySelector("#thaiLotteryPopupContent");
+        const controls = captureElement.querySelector('.popup-controls');
+        if (controls) controls.style.display = "none";
+
+        try {
+            const canvas = await html2canvas(captureElement, {
+                scale: 3,
+                backgroundColor: '#FFFFD1',
+                useCORS: true
+            });
+
+            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+            const file = new File([blob], "thai-lottery-result.png", { type: "image/png" });
+
+            await navigator.share({
+                files: [file]
+            });
+
+        } catch (err) {
+            console.error(err);
+            if (err.name !== 'AbortError') {
+                alert("ไม่สามารถส่งต่อได้");
+            }
+        } finally {
+            if (controls) controls.style.display = "flex";
+        }
     });
 }
 

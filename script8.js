@@ -98,7 +98,7 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
 
         function getThaiDate(date = new Date()) {
             const days = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายन", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             return `วัน${days[date.getDay()]}ที่ ${String(date.getDate()).padStart(2, '0')} ${months[date.getMonth()]} พ.ศ. ${date.getFullYear() + 543}`;
         }
         
@@ -207,6 +207,7 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
             
             showPopup();
             setupSaveLaoImageButton();
+            setupShareLaoImageButton(); // 👈 เพิ่มบรรทัดนี้
         }
 
         function getNumbersForToggle() {
@@ -289,6 +290,27 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
             }
         }
 
+// --- 2️⃣ เพิ่มฟังกชัน "แชร์รูป" (ไม่ยุ่งของเดิม) ---
+async function shareCanvasImage(canvas, fileName) {
+    if (!navigator.canShare) {
+        alert("อุปกรณ์นี้ไม่รองรับการแชร์");
+        return;
+    }
+
+    const blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, "image/png")
+    );
+
+    const file = new File([blob], fileName, { type: "image/png" });
+
+    if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+            files: [file],
+        });
+    } else {
+        alert("ไม่สามารถแชร์ไฟล์นี้ได้");
+    }
+}
         
         function setupSaveLaoImageButton() {
             const saveBtn = document.getElementById("saveLaoAsImageButton");
@@ -334,6 +356,35 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
             });
         }
 
+// --- 3️⃣ เชื่อมกับ popup ลาว (เพิ่มเฉพาะส่วน share) ---
+function setupShareLaoImageButton() {
+    const btn = document.getElementById("shareLaoImageButton");
+    if (!btn) return;
+
+    btn.onclick = () => {
+        const captureElement = document.querySelector("#popupOverlay .popup-content");
+        const controls = captureElement.querySelector('.popup-buttons-container');
+
+        controls.style.display = "none";
+
+        setTimeout(() => {
+            html2canvas(captureElement, {
+                scale: 4,
+                backgroundColor: '#fffde7',
+                useCORS: true
+            }).then(canvas => {
+                const num = document.getElementById("numberInput").value || "result";
+                const key = document.getElementById("topicSelect").value;
+                const name = lotteryTypes[key].name.replace(/\s+/g, '');
+
+                shareCanvasImage(canvas, `Result-${name}-${num}.png`);
+            }).finally(() => {
+                controls.style.display = "flex";
+            });
+        }, 100);
+    };
+}
+
         function formatThaiDate(dateString) {
             const parts = dateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
             if (!parts) return `งวดวันที่ ${dateString}`;
@@ -346,7 +397,7 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
                 return `งวดวันที่ ${dateString}`;
             }
             const days = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคм", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             const dayOfWeek = days[date.getDay()];
             const monthName = months[date.getMonth()];
             return `งวดวัน${dayOfWeek}ที่ ${day} ${monthName} พ.ศ. ${thaiYear}`;
@@ -405,6 +456,7 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
 
             showThaiPopup();
             setupSaveThaiImageButton();
+            setupShareThaiImageButton(); // 👈 เพิ่มบรรทัดนี้
         }
 
         function setupSaveThaiImageButton() {
@@ -454,6 +506,34 @@ function createPingPongNumbers(numbers, type = 'red', size = 42, fontSize = 22) 
                 }, 100);
             });
         }
+
+// --- 4️⃣ ฝั่งรัฐบาลไทย (เพิ่มฟังก์ชันแชร์) ---
+function setupShareThaiImageButton() {
+    const btn = document.getElementById("shareThaiAsImageButton");
+    if (!btn) return;
+
+    btn.onclick = () => {
+        const captureElement = document.querySelector("#thaiLotteryPopupContent");
+        const controls = captureElement.querySelector('.popup-controls');
+
+        controls.style.display = "none";
+
+        setTimeout(() => {
+            html2canvas(captureElement, {
+                scale: 4,
+                backgroundColor: '#FFFFD1',
+                useCORS: true
+            }).then(canvas => {
+                const firstPrize = document.getElementById("first-prize").value || "XXXXXX";
+                const dateText = document.getElementById("display-draw-date").innerText.replace(/[^a-zA-Z0-9-]/g, '_');
+
+                shareCanvasImage(canvas, `ผลสลากรัฐบาล-${firstPrize}-${dateText}.png`);
+            }).finally(() => {
+                controls.style.display = "flex";
+            });
+        }, 100);
+    };
+}
 
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener("DOMContentLoaded", () => {
