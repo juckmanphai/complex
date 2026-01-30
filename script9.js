@@ -1,4 +1,4 @@
-  document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
 
     // ===== Popup Functions =====
     function showResultPopup() {
@@ -1664,6 +1664,72 @@ const lunarData = {
                 captureElement.style.padding = originalPadding;
             });
         });
+        
+        // ============================================================
+        // [ปรับปรุงใหม่] Logic ปุ่มแชร์ (คัดลอก Logic มาจาก script1.js)
+        // ============================================================
+        const shareBtn = document.getElementById("shareResultImageBtn"); 
+        // หมายเหตุ: ในไฟล์ HTML คุณต้องมีปุ่ม id="shareResultImageBtn" ด้วยนะครับ
+
+        if (shareBtn) {
+            // Clone เพื่อล้าง Event Listener เก่า (ป้องกันการกดซ้ำซ้อน)
+            const newShareBtn = shareBtn.cloneNode(true);
+            shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
+
+            newShareBtn.addEventListener("click", function() {
+                // 1. อ้างอิง Element ที่จะจับภาพ
+                const captureElement = document.querySelector(".popup-content");
+                const controlsElement = captureElement.querySelector('.controls');
+
+                // 2. ซ่อนปุ่มต่างๆ และจัด Padding ชั่วคราวเพื่อให้ภาพสวย
+                const originalDisplay = controlsElement.style.display;
+                controlsElement.style.display = 'none'; // ซ่อนแผงควบคุม
+                
+                const originalPadding = captureElement.style.padding;
+                captureElement.style.padding = '7px'; // 
+
+                // 3. เริ่มสร้างภาพด้วย html2canvas (ตั้งค่าเหมือน script1)
+                html2canvas(captureElement, {
+                    useCORS: true,
+                    scale: 4, // ความคมชัดระดับสูง
+                    backgroundColor: '#FFFFD1', // สีพื้นหลังตาม Theme
+                    logging: false // ปิด log เพื่อความสะอาด
+                }).then(canvas => {
+                    // 4. แปลง Canvas เป็น Blob
+                    canvas.toBlob(blob => {
+                        if (!blob) {
+                            alert("เกิดข้อผิดพลาดในการสร้างไฟล์รูปภาพ");
+                            return;
+                        }
+
+                        // ตั้งชื่อไฟล์ (ดึงเลขจาก input)
+                        const numVal = document.getElementById("numberInput").value || "Result";
+                        const fileName = `LaoResult-${numVal}.png`;
+                        
+                        const file = new File([blob], fileName, { type: "image/png" });
+
+                        // 5. ตรวจสอบและเรียกใช้ Web Share API
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            navigator.share({
+                                files: [file],
+                            })
+                            .then(() => console.log('แชร์สำเร็จ'))
+                            .catch((error) => console.log('ยกเลิกการแชร์ หรือ Error:', error));
+                        } else {
+                            alert("อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการแชร์รูปภาพโดยตรง (กรุณาใช้ปุ่ม 'บันทึก' แทน)");
+                        }
+                    }, 'image/png');
+
+                }).catch(err => {
+                    console.error("html2canvas Error:", err);
+                    alert("ไม่สามารถสร้างรูปภาพเพื่อแชร์ได้");
+                }).finally(() => {
+                    // 6. คืนค่าการแสดงผลเดิม ไม่ว่าจะสำเร็จหรือล้มเหลว
+                    controlsElement.style.display = originalDisplay;
+                    captureElement.style.padding = originalPadding;
+                });
+            });
+        }
         
         updateFontSize();
         updateLineHeight();
