@@ -2568,7 +2568,7 @@ const SHARE_PREF_KEY = 'sharePreference_v1';
 
 // รายชื่อผู้รับ Telegram (ID บุคคล + กลุ่ม)
 const TELEGRAM_RECIPIENTS = [
-    { type: 'group', id: '-1003960364296', name: 'กลุ่ม' },
+    { type: 'group', id: '--1002170201653', name: 'กลุ่ม' },
     { type: 'personal', id: '5101894762', name: 'บุคคล 1' },
     { type: 'personal', id: '5137261095', name: 'บุคคล 2' }
 ];
