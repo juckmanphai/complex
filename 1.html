@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ผลรางวัลกลุ่มลาวและรัฐบาล</title>
     
-    <link rel="manifest" href="manifest-all-lao.json">
+    <link rel="manifest" href="manifest-main.json">
     <meta name="theme-color" content="#FF9800"/>
     <link rel="apple-touch-icon" href="192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,7 +19,6 @@
 <div class="form-container">
     <input type="text" id="numberInput" placeholder="กรอกตัวเลข 2, 3 หรือ 4 หลัก" pattern="\d*" maxlength="4" inputmode="numeric" />
 
-    <!-- Unified Topic Section -->
     <div class="select-wrapper">
         <select id="topicSelect" onchange="checkCustomTopicOption(this)">
             <option value="ลาวประตูชัย เวลา 05.45 น." data-default="true">ลาวประตูชัย เวลา 05.45 น.</option>
@@ -58,11 +57,10 @@
         </div>
     </div>
 
-    <!-- Unified Person Section -->
     <div class="select-wrapper">
         <select id="personSelect" onchange="checkCustomOption(this)">
-          <option value="Team" data-default="true">Team</option>        
-           <option value="@" data-default="true">@</option> 
+          <option value="Team" data-default="true">Team</option>     
+           <option value="@" data-default="true">@</option>       
             <option value="Udon Don" data-default="true">Udon Don</option>
             <option value="custom">อื่นๆ (พิมพ์เอง)</option>
         </select>
@@ -82,12 +80,13 @@
     </div>
     <input type="date" id="hiddenDateInput" style="display: none; visibility: hidden;">
 
-    <input type="text" id="noteInput" placeholder="หมายเหตุ (ถ้ามี)" />
+<input type="text" id="noteInput" placeholder="กรอกหมายเหตุ (ถ้ามี)" style="width: 100%; margin-top: 10px; margin-bottom: 15px; box-sizing: border-box; text-align: center;" />
+
     <button id="convertButton">แปลตัวเลข</button>
 </div>
 
 <button id="homeButton" class="homeButton" onclick="window.location.href='index.html'">กลับสู่หน้าหลัก</button>
-<!-- Result Popup -->
+
 <div id="resultPopupOverlay" class="popup-overlay">
 <div class="popup-content">
 <div id="resultContainerDiv" class="result-container-popup">
@@ -95,11 +94,16 @@
 </div>
 <div class="controls">
 <button id="saveResultAsImageBtn" class="close-popup-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
-<button id="shareResultBtn"
-        class="close-popup-btn"
-        style="background-color:#28a745; margin-bottom:15px;">
-แชร์ไปยังแอป
-</button>
+
+<div style="display: flex; gap: 5px; margin-bottom: 15px; width: 100%;">
+    <button id="shareResultBtn" class="close-popup-btn" style="background-color:#28a745; flex-grow: 1; margin-bottom: 0;">
+        แชร์ไปยังแอป
+    </button>
+    <button id="shareSettingsBtn" class="close-popup-btn" style="background-color:#1e7e34; width: 60px; margin-bottom: 0;" title="ตั้งค่าการแชร์">
+        ⚙️
+    </button>
+</div>
+
 <div class="control-group">
 <label for="popupFontSizeSlider">ปรับขนาดตัวอักษร:</label>
 <input type="range" id="popupFontSizeSlider" min="0.7" max="2.0" step="0.05" value="1.0">
@@ -114,7 +118,58 @@
 </div>
 </div>
 </div>
-<!-- Management Modals -->
+
+<div id="shareSettingsModal" class="popup-overlay" style="z-index: 2000;">
+    <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
+        <h2 style="color: #0056b3; text-align: center;">ตั้งค่าปุ่มแชร์ด่วน</h2>
+        <p style="text-align: center; font-size: 14px; margin-bottom: 15px;">เลือกการทำงานเมื่อกดปุ่มสีเขียว</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc; display: flex; align-items: center;">
+                <input type="radio" name="shareMode" value="system" style="margin-right: 10px;">
+                <div>
+                    <strong>แชร์ปกติ (System Share)</strong><br>
+                    <span style="font-size: 12px; color: #666;">เรียกเมนูแชร์ของเครื่อง (เลือกแอปเองทุกครั้ง)</span>
+                </div>
+            </label>
+
+            <label style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc; display: flex; align-items: center;">
+                <input type="radio" name="shareMode" value="copy" style="margin-right: 10px;">
+                <div>
+                    <strong>คัดลอกรูปภาพ (Copy Image)</strong><br>
+                    <span style="font-size: 12px; color: #666;">คัดลอกทันที! เหมาะสำหรับนำไปวางในแชท Line/Face กลุ่มเดิมบ่อยๆ</span>
+                </div>
+            </label>
+        </div>
+
+        <!-- ส่วนตั้งค่า Telegram Token แบบปลอดภัย -->
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ccc;">
+            <h4 style="color: #0056b3; text-align: center; margin-bottom: 10px;">🤖 ตั้งค่า Telegram Bot</h4>
+            <p style="font-size: 12px; color: #666; text-align: center; margin-bottom: 10px;">
+                ใส่ Bot Token ที่ได้จาก @BotFather (Token จะถูกเก็บเฉพาะเครื่องคุณเท่านั้น)
+            </p>
+            <input type="text" id="tgTokenInput" 
+                   placeholder="วาง Bot Token ที่นี่ เช่น 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" 
+                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 12px; box-sizing: border-box;">
+            <button id="saveTokenBtn" 
+                    style="background: linear-gradient(135deg, #0088cc, #0077b5); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
+                💾 บันทึก Token ลงเครื่องนี้
+            </button>
+            <p style="font-size: 11px; color: #999; text-align: center; margin-top: 10px;">
+                🔐 Token จะถูกเก็บในเบราว์เซอร์ของคุณเท่านั้น ปลอดภัย ไม่รั่วไหล
+            </p>
+            <p style="font-size: 11px; color: #f0ad4e; text-align: center; margin-top: 5px;">
+                ⚠️ หากยังไม่มี Token ให้ไปสร้างที่ @BotFather ใน Telegram
+            </p>
+        </div>
+
+        <div class="modal-button-group" style="margin-top: 20px;">
+            <button id="saveShareSettingsBtn" style="background-color: #28a745;">บันทึก</button>
+            <button id="closeShareSettingsBtn" class="close-popup-btn">ปิด</button>
+        </div>
+    </div>
+</div>
+
 <div id="topicModal" class="popup-overlay">
 <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
 <h2 id="topicModalTitle" style="color: #0056b3; text-align: center;"></h2>
@@ -127,6 +182,7 @@
 </div>
 </div>
 </div>
+
 <div id="personModal" class="popup-overlay">
 <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
 <h2 id="personModalTitle" style="color: #0056b3; text-align: center;"></h2>
@@ -138,11 +194,37 @@
 </div>
 </div>
 </div>
+
+
+
 <footer>
 <div style="text-align: center; margin-bottom: 20px;">
-&copy; 2025 Juckmanphai. All Rights Reserved.
+&copy; 2025 Juckphai. All Rights Reserved.
 </div>
 </footer>    
-    <script src="script1.js"></script>
+
+<script src="script1.js"></script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw-main.js')
+                .then(registration => {
+                    console.log('Service Worker registered successfully for 1.html:', registration);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
+    }
+</script>
 </body>
 </html>

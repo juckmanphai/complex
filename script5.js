@@ -10,12 +10,197 @@ const lotteryTypes = {
     'laopattana':   { name: 'ลาวพัฒนา', time: '20.30 น', digits: 6, type: 'pattana' },
     'laosamakkee':  { name: 'ลาวสามัคคี', time: '20.30 น', digits: 5, type: 'samakkhee' },
     'laostar-2100': { name: 'ลาวอาเซียน', time: '21.00 น', digits: 5, type: 'star' },
-    'laovip-2130':  { name: 'ลาว VIP', time: '21.30 น', digits: 5, type: 'samakkhee' }, // Re-using samakkhee logic
+    'laovip-2130':  { name: 'ลาว VIP', time: '21.30 น', digits: 5, type: 'samakkhee' },
     'laosamakkeevip': { name: 'ลาวสามัคคี VIP', time: '21.30 น', digits: 5, type: 'samakkhee' },
     'laostar-2200': { name: 'ลาวสตาร์ VIP', time: '22.00 น', digits: 5, type: 'star' },
     'laostar-2330': { name: 'ลาวกาชาด', time: '23.30 น', digits: 5, type: 'star' },
     'thai-government': { name: 'รัฐบาลไทย', type: 'thai' }
 };
+
+// === TELEGRAM CONFIGURATION ===
+const TELEGRAM_RECIPIENTS = [
+    { type: 'group', id: '-1003960364296', name: 'กลุ่ม' },
+    { type: 'personal', id: '5101894762', name: 'บุคคล 1' },
+    { type: 'personal', id: '5137261095', name: 'บุคคล 2' }
+];
+
+// === ระบบโหลดและเซฟ Telegram Token ===
+function getTelegramToken() {
+    return localStorage.getItem('my_telegram_token') || '';
+}
+
+function saveTelegramToken(token) {
+    if (token && token.trim().length > 20) {
+        localStorage.setItem('my_telegram_token', token.trim());
+        return true;
+    }
+    return false;
+}
+
+function clearTelegramToken() {
+    localStorage.removeItem('my_telegram_token');
+}
+
+function setupTelegramTokenUI() {
+    const tokenInput = document.getElementById("tgTokenInput");
+    const saveBtn = document.getElementById("saveTokenBtn");
+    
+    if (!tokenInput || !saveBtn) return;
+    
+    const savedToken = getTelegramToken();
+    if (savedToken) {
+        tokenInput.value = savedToken;
+        const maskedToken = savedToken.substring(0, 15) + '...' + savedToken.substring(savedToken.length - 5);
+        console.log('✅ โหลด Token แล้ว (บางส่วน):', maskedToken);
+    }
+    
+    saveBtn.addEventListener("click", function() {
+        const tokenValue = tokenInput.value.trim();
+        if (tokenValue && tokenValue.length > 20) {
+            if (saveTelegramToken(tokenValue)) {
+                alert("✅ บันทึก Token ลงในเครื่องเรียบร้อยแล้ว!\nระบบจะใช้ Token นี้ในการส่งข้อความไปยัง Telegram");
+                const maskedDisplay = tokenValue.substring(0, 10) + '...' + tokenValue.substring(tokenValue.length - 5);
+                console.log('🔐 บันทึก Token แล้ว:', maskedDisplay);
+            } else {
+                alert("❌ ไม่สามารถบันทึก Token ได้");
+            }
+        } else if (tokenValue) {
+            alert("⚠️ Token ไม่ถูกต้อง (ควรยาวประมาณ 40-50 ตัวอักษร)");
+        } else {
+            alert("⚠️ กรุณากรอก Token ก่อนบันทึก");
+        }
+    });
+}
+
+// === TELEGRAM SHARE FUNCTION ===
+async function shareToTelegram(blob, caption = '') {
+    const TELEGRAM_BOT_TOKEN = getTelegramToken();
+    
+    if (!TELEGRAM_BOT_TOKEN) {
+        alert('⚠️ กรุณาตั้งค่า Telegram Bot Token ก่อน!\n\nไปที่ปุ่ม ⚙️ > ตั้งค่า Telegram Bot');
+        return false;
+    }
+    
+    let successCount = 0;
+    let failCount = 0;
+    const totalRecipients = TELEGRAM_RECIPIENTS.length;
+    
+    alert(`📤 กำลังส่งไปยัง ${totalRecipients} ที่...\n(กลุ่ม + บุคคล 2 ท่าน)`);
+    
+    for (const recipient of TELEGRAM_RECIPIENTS) {
+        const formData = new FormData();
+        const fileName = `lottery_result_${Date.now()}_${recipient.id}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+        formData.append('chat_id', recipient.id);
+        formData.append('photo', file);
+        if (caption) formData.append('caption', caption);
+        
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.ok) {
+                successCount++;
+                console.log(`✅ ส่งไปยัง ${recipient.name} (${recipient.id}) สำเร็จ`);
+            } else {
+                failCount++;
+                console.error(`❌ ส่งไปยัง ${recipient.name} ล้มเหลว:`, result.description);
+            }
+        } catch (error) {
+            failCount++;
+            console.error(`❌ ส่งไปยัง ${recipient.name} เกิดข้อผิดพลาด:`, error.message);
+        }
+    }
+    
+    if (failCount === 0) {
+        alert(`✅ ส่งสำเร็จทั้งหมด ${successCount}/${totalRecipients} ที่!\n(กลุ่ม + บุคคล 2 ท่าน)`);
+    } else {
+        alert(`⚠️ ส่งสำเร็จ ${successCount}/${totalRecipients} ที่\n❌ ล้มเหลว ${failCount} ที่ (ดู Console)`);
+    }
+    
+    return successCount > 0;
+}
+
+// === SHARE SETTINGS LOGIC ===
+const SHARE_PREF_KEY = 'sharePreference_universal';
+
+function loadSharePreference() {
+    return localStorage.getItem(SHARE_PREF_KEY) || 'system';
+}
+
+function updateShareButtonsUI() {
+    const mode = loadSharePreference();
+    const laoBtn = document.getElementById("shareLaoImageButton");
+    const thaiBtn = document.getElementById("shareThaiImageButton");
+    
+    const text = mode === 'copy' ? "📋 คัดลอกรูป (วางแชท)" : "📤 ส่งต่อไปแอป";
+    const color = mode === 'copy' ? "#ff9800" : "#28a745";
+
+    if (laoBtn) {
+        laoBtn.textContent = text;
+        laoBtn.style.backgroundColor = color;
+    }
+    if (thaiBtn) {
+        thaiBtn.textContent = mode === 'copy' ? "📋 คัดลอกรูป" : "📤 ส่งต่อ";
+        thaiBtn.style.backgroundColor = color;
+    }
+}
+
+async function copyImageToClipboard(blob) {
+    try {
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        alert("คัดลอกรูปภาพแล้ว! \nคุณสามารถไปที่แอป Line หรือ Messenger แล้วกด 'วาง' ในช่องแชทได้เลย");
+    } catch (err) {
+        console.error("Copy failed", err);
+        alert("อุปกรณ์นี้ไม่รองรับการคัดลอกรูปภาพโดยตรง (ลองใช้แบบแชร์ปกติ)");
+    }
+}
+
+function initShareSettings() {
+    updateShareButtonsUI();
+    setupTelegramTokenUI();
+
+    const openModal = () => {
+        const currentMode = loadSharePreference();
+        const radios = document.getElementsByName("shareMode");
+        radios.forEach(r => { if (r.value === currentMode) r.checked = true; });
+        
+        const tokenInput = document.getElementById("tgTokenInput");
+        if (tokenInput) {
+            tokenInput.value = getTelegramToken();
+        }
+        
+        document.getElementById("shareSettingsModal").style.display = "flex";
+    };
+
+    const btnLao = document.getElementById("shareSettingsBtnLao");
+    const btnThai = document.getElementById("shareSettingsBtnThai");
+    if(btnLao) btnLao.addEventListener("click", openModal);
+    if(btnThai) btnThai.addEventListener("click", openModal);
+
+    const closeBtn = document.getElementById("closeShareSettingsBtn");
+    if(closeBtn) {
+        closeBtn.addEventListener("click", () => {
+            document.getElementById("shareSettingsModal").style.display = "none";
+        });
+    }
+
+    const saveBtn = document.getElementById("saveShareSettingsBtn");
+    if(saveBtn) {
+        saveBtn.addEventListener("click", () => {
+            const radios = document.getElementsByName("shareMode");
+            let selected = 'system';
+            radios.forEach(r => { if(r.checked) selected = r.value; });
+            
+            localStorage.setItem(SHARE_PREF_KEY, selected);
+            updateShareButtonsUI();
+            document.getElementById("shareSettingsModal").style.display = "none";
+        });
+    }
+}
 
 // --- Core Functions ---
 function createPingPongBall(number, type = 'red', size = 42, fontSize = 22) {
@@ -96,7 +281,6 @@ function getThaiDate(date = new Date()) {
     return `วัน${days[date.getDay()]}ที่ ${String(date.getDate()).padStart(2, '0')} ${months[date.getMonth()]} พ.ศ. ${date.getFullYear() + 543}`;
 }
 
-// Popup functions
 function showPopup() { document.getElementById("popupOverlay").style.display = "flex"; }
 function closePopup() { document.getElementById("popupOverlay").style.display = "none"; }
 function showThaiPopup() { document.getElementById("thaiLotteryPopupOverlay").style.display = "flex"; }
@@ -203,10 +387,10 @@ function convertNumber() {
     
     showPopup();
     setupSaveLaoImageButton();
-    setupShareLaoImageButton(); // เพิ่มฟังก์ชันแชร์
+    setupShareLaoImageButton();
+    setupTelegramLaoShareButton();
 }
 
-// --- Popup Button Functions ---
 function getNumbersForToggle() {
     const selectedKey = document.getElementById("topicSelect").value;
     const config = lotteryTypes[selectedKey];
@@ -266,9 +450,10 @@ function toggleSquareTopPopup() {
     }
 }
 
-// --- Save and Share Functions ---
 function setupSaveLaoImageButton() {
     const saveBtn = document.getElementById("saveLaoAsImageButton");
+    if (!saveBtn) return;
+    
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
@@ -283,15 +468,11 @@ function setupSaveLaoImageButton() {
                 scale: 4,
                 backgroundColor: '#fffde7',
                 allowTaint: true,
-                onclone: function(clonedDoc) {
-                    const balls = clonedDoc.querySelectorAll('.ball-shadow, .ball-text-shadow');
-                    balls.forEach(ball => { ball.style.filter = getComputedStyle(ball).filter; });
-                }
             }).then(canvas => {
                 const link = document.createElement('a');
                 const num = document.getElementById("numberInput").value || "result";
                 const selectedKey = document.getElementById("topicSelect").value;
-                const topicName = lotteryTypes[selectedKey].name.replace(/\s+/g, '');
+                const topicName = lotteryTypes[selectedKey]?.name.replace(/\s+/g, '') || 'result';
                 link.download = `Result-${topicName}-${num}-${Date.now()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
@@ -305,28 +486,18 @@ function setupSaveLaoImageButton() {
     });
 }
 
-// เพิ่มฟังก์ชันแชร์สำหรับป๊อปอัพลาว
 function setupShareLaoImageButton() {
     const shareBtn = document.getElementById("shareLaoImageButton");
     if (!shareBtn) return;
-
-    // UX: ซ่อนปุ่มถ้าเบราว์เซอร์ไม่รองรับ Web Share
-    if (!navigator.share) {
-        shareBtn.style.display = "none";
-        return;
-    }
 
     const newBtn = shareBtn.cloneNode(true);
     shareBtn.parentNode.replaceChild(newBtn, shareBtn);
 
     newBtn.addEventListener("click", async () => {
-        if (!navigator.share) {
-            alert("อุปกรณ์นี้ไม่รองรับการส่งต่อ");
-            return;
-        }
-
         const captureElement = document.querySelector("#popupOverlay .popup-content");
         const controls = captureElement.querySelector('.popup-buttons-container');
+        const mode = loadSharePreference();
+
         if (controls) controls.style.display = "none";
 
         try {
@@ -337,24 +508,62 @@ function setupShareLaoImageButton() {
             });
 
             const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-            const file = new File([blob], "lottery-result.png", { type: "image/png" });
 
-            await navigator.share({
-                files: [file]
-            });
+            if (mode === 'copy') {
+                await copyImageToClipboard(blob);
+            } else {
+                if (!navigator.share) { alert("อุปกรณ์นี้ไม่รองรับการส่งต่อ"); return; }
+                const file = new File([blob], "lottery-result.png", { type: "image/png" });
+                await navigator.share({ files: [file] });
+            }
 
         } catch (err) {
             console.error(err);
-            if (err.name !== 'AbortError') {
-                alert("ไม่สามารถส่งต่อได้");
-            }
+            if (err.name !== 'AbortError') alert("เกิดข้อผิดพลาด: " + err.message);
         } finally {
             if (controls) controls.style.display = "flex";
         }
     });
 }
 
-// --- Thai Government Lottery Logic ---
+function setupTelegramLaoShareButton() {
+    const tgBtn = document.getElementById("telegramShareLaoBtn");
+    if (!tgBtn) return;
+    
+    const newBtn = tgBtn.cloneNode(true);
+    tgBtn.parentNode.replaceChild(newBtn, tgBtn);
+    
+    newBtn.addEventListener("click", async () => {
+        const captureElement = document.querySelector("#popupOverlay .popup-content");
+        const controls = captureElement.querySelector('.popup-buttons-container');
+        
+        if (controls) controls.style.display = "none";
+        
+        try {
+            const canvas = await html2canvas(captureElement, {
+                scale: 3,
+                backgroundColor: '#fffde7',
+                useCORS: true
+            });
+            
+            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+            
+            const selectedKey = document.getElementById("topicSelect").value;
+            const config = lotteryTypes[selectedKey];
+            const num = document.getElementById("numberInput").value || "";
+            const caption = "";
+            
+            await shareToTelegram(blob, caption);
+            
+        } catch (err) {
+            console.error(err);
+            alert('เกิดข้อผิดพลาดในการส่งไป Telegram');
+        } finally {
+            if (controls) controls.style.display = "flex";
+        }
+    });
+}
+
 function formatThaiDate(dateString) {
     const parts = dateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!parts) return `งวดวันที่ ${dateString}`;
@@ -401,11 +610,14 @@ function displayThaiResults() {
     
     showThaiPopup();
     setupSaveThaiImageButton();
-    setupShareThaiImageButton(); // เพิ่มฟังก์ชันแชร์
+    setupShareThaiImageButton();
+    setupTelegramThaiShareButton();
 }
 
 function setupSaveThaiImageButton() {
     const saveBtn = document.getElementById("saveThaiAsImageButton");
+    if (!saveBtn) return;
+    
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
@@ -424,12 +636,6 @@ function setupSaveThaiImageButton() {
                 backgroundColor: '#FFFFD1',
                 logging: false,
                 allowTaint: true,
-                onclone: (clonedDoc) => {
-                    const clonedElement = clonedDoc.querySelector("#thaiLotteryPopupContent");
-                    if (clonedElement) clonedElement.style.boxShadow = 'none';
-                    const balls = clonedDoc.querySelectorAll('.ball-shadow, .ball-text-shadow');
-                    balls.forEach(ball => { ball.style.filter = getComputedStyle(ball).filter; });
-                }
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `ผลสลากรัฐบาล-${firstPrize}-${dateText}.png`;
@@ -445,84 +651,143 @@ function setupSaveThaiImageButton() {
     });
 }
 
-// เพิ่มฟังก์ชันแชร์สำหรับป๊อปอัพไทย
 function setupShareThaiImageButton() {
     const shareBtn = document.getElementById("shareThaiImageButton");
     if (!shareBtn) return;
 
-    // ตรวจสอบว่า Browser รองรับการแชร์หรือไม่
-    // หมายเหตุ: ต้องรันบน HTTPS หรือ localhost เท่านั้น
-    if (!navigator.share) {
-        shareBtn.style.display = "none"; // ซ่อนปุ่มถ้าไม่รองรับ
-        console.log("Web Share API not supported or not on HTTPS");
-        return;
-    }
-
-    // Clone ปุ่มเพื่อล้าง Event Listener เก่าที่อาจค้างอยู่
     const newBtn = shareBtn.cloneNode(true);
     shareBtn.parentNode.replaceChild(newBtn, shareBtn);
 
     newBtn.addEventListener("click", async () => {
-        // ตรวจสอบอีกครั้งเพื่อความชัวร์
-        if (!navigator.share) {
-            alert("อุปกรณ์นี้ไม่รองรับฟีเจอร์การแชร์ (ต้องใช้ผ่าน HTTPS)");
-            return;
-        }
-
         const captureElement = document.querySelector("#thaiLotteryPopupContent");
         const controls = captureElement.querySelector('.popup-controls');
+        const mode = loadSharePreference();
         
-        // ซ่อนปุ่มกดก่อนแคปภาพ
         if (controls) controls.style.display = "none";
 
         try {
-            // สร้างรูปภาพจาก HTML
             const canvas = await html2canvas(captureElement, {
-                scale: 4, // ความชัด
-                backgroundColor: '#FFFFD1', // สีพื้นหลังเดียวกับธีมรัฐบาล
+                scale: 4, 
+                backgroundColor: '#FFFFD1',
                 useCORS: true,
                 logging: false
             });
 
-            // แปลง Canvas เป็น Blob (ไฟล์รูป)
             const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-            
-            // ดึงข้อมูลงวดวันที่มาตั้งชื่อไฟล์
-            const dateText = document.getElementById("display-draw-date").innerText || "result";
-            const fileName = `thai-lottery-${dateText.replace(/\s/g, '_')}.png`;
-            
-            const file = new File([blob], fileName, { type: "image/png" });
 
-            // เตรียมข้อมูลแชร์ (สำคัญ: ต้องใส่ title และ text เพื่อกันเบราว์เซอร์ปฏิเสธ)
-            const shareData = {
-                files: [file]
-            };
+            if (mode === 'copy') {
+                await copyImageToClipboard(blob);
+            } else {
+                if (!navigator.share) { alert("อุปกรณ์นี้ไม่รองรับฟีเจอร์การแชร์"); return; }
+                
+                const dateText = document.getElementById("display-draw-date").innerText || "result";
+                const fileName = `thai-lottery-${dateText.replace(/\s/g, '_')}.png`;
+                const file = new File([blob], fileName, { type: "image/png" });
 
-            // ตรวจสอบว่าแชร์ไฟล์นี้ได้หรือไม่ (สำหรับ Android/Chrome รุ่นใหม่)
-            if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-                alert("อุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์รูปภาพนี้");
-                return;
+                if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+                    alert("อุปกรณ์ไม่รองรับการแชร์ไฟล์นี้");
+                    return;
+                }
+                await navigator.share({ files: [file] });
             }
-
-            // สั่งแชร์
-            await navigator.share(shareData);
 
         } catch (err) {
-            console.error("Share Error:", err);
-            // แจ้งเตือนถ้าไม่ใช่กรณีผู้ใช้กดยกเลิกเอง
-            if (err.name !== 'AbortError') {
-                alert("เกิดข้อผิดพลาดในการแชร์: " + err.message);
-            }
+            console.error("Error:", err);
+            if (err.name !== 'AbortError') alert("เกิดข้อผิดพลาด: " + err.message);
         } finally {
-            // แสดงปุ่มกลับมาเหมือนเดิมไม่ว่าจะสำเร็จหรือล้มเหลว
             if (controls) controls.style.display = "flex";
         }
     });
 }
 
+function setupTelegramThaiShareButton() {
+    const tgBtn = document.getElementById("telegramShareThaiBtn");
+    if (!tgBtn) return;
+    
+    const newBtn = tgBtn.cloneNode(true);
+    tgBtn.parentNode.replaceChild(newBtn, tgBtn);
+    
+    newBtn.addEventListener("click", async () => {
+        const captureElement = document.querySelector("#thaiLotteryPopupContent");
+        const controls = captureElement.querySelector('.popup-controls');
+        
+        if (controls) controls.style.display = "none";
+        
+        try {
+            const canvas = await html2canvas(captureElement, {
+                scale: 4,
+                backgroundColor: '#FFFFD1',
+                useCORS: true,
+                logging: false
+            });
+            
+            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+            
+            const firstPrize = document.getElementById("first-prize").value || "XXXXXX";
+            const drawDate = document.getElementById("display-draw-date").innerText || "";
+            const caption = "";
+            
+            await shareToTelegram(blob, caption);
+            
+        } catch (err) {
+            console.error(err);
+            alert('เกิดข้อผิดพลาดในการส่งไป Telegram');
+        } finally {
+            if (controls) controls.style.display = "flex";
+        }
+    });
+}
+
+// --- PWA Installation Handler ---
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    const installBtn = document.createElement('button');
+    installBtn.id = 'installPwaBtn';
+    installBtn.innerHTML = '📲 ติดตั้งแอป';
+    installBtn.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+            installBtn.style.display = 'none';
+        }
+    });
+    
+    document.body.appendChild(installBtn);
+});
+
+window.addEventListener('appinstalled', () => {
+    console.log('PWA installed successfully');
+    const installBtn = document.getElementById('installPwaBtn');
+    if (installBtn) installBtn.style.display = 'none';
+});
+
 // --- Event Listeners ---
 document.addEventListener('contextmenu', e => e.preventDefault());
+
 document.addEventListener("DOMContentLoaded", () => {
+    initShareSettings();
     populateTopicSelect();
     setDefaultDate();
     updateFormVisibility(document.getElementById("topicSelect").value);
@@ -556,10 +821,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// --- Service Worker Registration ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw-all-lao.js')
-            .then(reg => console.log('Service Worker registered.', reg))
-            .catch(err => console.error('Service Worker registration failed:', err));
+        navigator.serviceWorker.register('./sw-main.js')
+            .then(reg => {
+                console.log('Service Worker registered successfully for 5.html:', reg);
+            })
+            .catch(err => {
+                console.error('Service Worker registration failed:', err);
+            });
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            window.location.reload();
+            refreshing = true;
+        }
     });
 }
