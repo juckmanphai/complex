@@ -46,8 +46,21 @@
     <button class="openButton" onclick="openSelectedSite()">เปิดเว็บไซต์</button>
   </div>
 
-    <footer>&copy; 2025 Juckmanphai. All Rights Reserved.</footer>
+    <footer>&copy; 2026 Juckmanphai. All Rights Reserved.</footer>
     
     <script src="script12.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // ลงทะเบียนโดยใช้ไฟล์ sw-main.js ไฟล์เดียวสำหรับทุกหน้า
+            navigator.serviceWorker.register('./sw-main.js')
+                .then(reg => console.log('Service Worker Registered'))
+                .catch(err => console.log('Service Worker Failed', err));
+        });
+    }
+
+    // ป้องกันการกดค้าง/คลิกขวา (ถ้าต้องการ)
+    document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
 </body>
 </html>
