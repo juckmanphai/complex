@@ -21,6 +21,7 @@
 
     <div class="select-wrapper">
         <select id="topicSelect" onchange="checkCustomTopicOption(this)">
+            <option value="ลาวหลายรอบ เวลา 08.30-15.45 น." data-default="true">ลาวหลายรอบ เวลา 08.30-15.45 น.</option>
             <option value="ลาวประตูชัย เวลา 05.45 น." data-default="true">ลาวประตูชัย เวลา 05.45 น.</option>
             <option value="ลาวสันติภาพ เวลา 06.45 น." data-default="true">ลาวสันติภาพ เวลา 06.45 น.</option>
             <option value="ประชาชนลาว เวลา 07.45 น." data-default="true">ประชาชนลาว เวลา 07.45 น.</option>
@@ -59,8 +60,8 @@
 
     <div class="select-wrapper">
         <select id="personSelect" onchange="checkCustomOption(this)">
-          <option value="Team" data-default="true">Team</option>     
-           <option value="@" data-default="true">@</option>       
+          <option value="Team" data-default="true">Team</option>    
+           <option value="@" data-default="true">@</option>      
             <option value="Udon Don" data-default="true">Udon Don</option>
             <option value="custom">อื่นๆ (พิมพ์เอง)</option>
         </select>
@@ -80,7 +81,32 @@
     </div>
     <input type="date" id="hiddenDateInput" style="display: none; visibility: hidden;">
 
-<input type="text" id="noteInput" placeholder="กรอกหมายเหตุ (ถ้ามี)" style="width: 100%; margin-top: 10px; margin-bottom: 15px; box-sizing: border-box; text-align: center;" />
+    <!-- ส่วนของหมายเหตุ (แบบเลือก + จัดการเองได้) -->
+    <div class="select-wrapper">
+        <select id="noteSelect" onchange="checkCustomNoteOption(this)">
+            <option value="">ไม่มีหมายเหตุ</option>
+            <option value="custom">อื่นๆ (พิมพ์เอง)</option>
+            <option value="ชุดแรก" data-default="true">ชุดแรก</option>
+           <option value="ชุดสอง" data-default="true">ชุดสอง</option>
+           <option value="ชุดสาม" data-default="true">ชุดสาม</option>
+        </select>
+
+        <button class="manage-btn-inline" id="toggleNoteControls" title="จัดการหมายเหตุ">
+            ⚙️
+        </button>
+    </div>
+
+    <div class="management-actions" id="noteActions">
+        <button id="addNoteBtn" class="add-btn">เพิ่ม</button>
+        <button id="editNoteBtn" class="edit-btn">แก้ไข</button>
+        <button id="deleteNoteBtn" class="delete-btn">ลบ</button>
+        <button id="resetNoteBtn" class="reset-btn">คืนค่า</button>
+    </div>
+
+<input type="text"
+       id="customNoteInput"
+       placeholder="พิมพ์หมายเหตุได้ทันที"
+       style="display:block; width:80%; margin:10px auto;" />
 
     <button id="convertButton">แปลตัวเลข</button>
 </div>
@@ -93,28 +119,37 @@
 <div id="resultContentWrapper"></div>
 </div>
 <div class="controls">
-<button id="saveResultAsImageBtn" class="close-popup-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
+    <div class="popup-action-buttons">
+        <button id="saveResultAsImageBtn" class="action-btn btn-blue">
+            💾 บันทึกเป็นรูปภาพ
+        </button>
 
-<div style="display: flex; gap: 5px; margin-bottom: 15px; width: 100%;">
-    <button id="shareResultBtn" class="close-popup-btn" style="background-color:#28a745; flex-grow: 1; margin-bottom: 0;">
-        แชร์ไปยังแอป
-    </button>
-    <button id="shareSettingsBtn" class="close-popup-btn" style="background-color:#1e7e34; width: 60px; margin-bottom: 0;" title="ตั้งค่าการแชร์">
-        ⚙️
-    </button>
-</div>
+        <div class="share-group">
+            <button id="shareResultBtn" class="action-btn btn-green">
+                📤 แชร์ไปยังแอป
+            </button>
+            <button id="shareSettingsBtn" class="action-btn btn-dark-green icon-btn" title="ตั้งค่าการแชร์">
+                ⚙️
+            </button>
+        </div>
+    </div>
 
-<div class="control-group">
-<label for="popupFontSizeSlider">ปรับขนาดตัวอักษร:</label>
-<input type="range" id="popupFontSizeSlider" min="0.7" max="2.0" step="0.05" value="1.0">
-<span id="popupFontSizeValue">ขนาด: 100%</span>
-</div>
-<div class="control-group">
-<label for="popupLineHeightSlider">ปรับขนาดของบรรทัด:</label>
-<input type="range" id="popupLineHeightSlider" min="0.5" max="2.5" step="0.1" value="1.3">
-<span id="popupLineHeightValue">ความสูงบรรทัด: 1.3</span>
-</div>
-<button class="close-popup-btn" onclick="closeResultPopup()">ปิดหน้าต่างนี้</button>
+    <div class="popup-settings-panel">
+        <div class="control-group">
+            <label for="popupFontSizeSlider">🔠 ปรับขนาดตัวอักษร:</label>
+            <input type="range" id="popupFontSizeSlider" min="0.7" max="2.0" step="0.05" value="1.0">
+            <span id="popupFontSizeValue" class="badge">ขนาด: 100%</span>
+        </div>
+        <div class="control-group">
+            <label for="popupLineHeightSlider">↕️ ปรับขนาดของบรรทัด:</label>
+            <input type="range" id="popupLineHeightSlider" min="0.5" max="2.5" step="0.1" value="1.3">
+            <span id="popupLineHeightValue" class="badge">ความสูงบรรทัด: 1.3</span>
+        </div>
+    </div>
+
+    <button class="action-btn btn-red close-btn" onclick="closeResultPopup()">
+        ❌ ปิดหน้าต่างนี้
+    </button>
 </div>
 </div>
 </div>
@@ -142,9 +177,12 @@
             </label>
         </div>
 
-        <!-- ส่วนตั้งค่า Telegram Token แบบปลอดภัย -->
+        <!-- ส่วนตั้งค่า Telegram Token และจัดการผู้รับ -->
         <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ccc;">
-            <h4 style="color: #0056b3; text-align: center; margin-bottom: 10px;">🤖 ตั้งค่า Telegram Bot</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="color: #0056b3; margin:0;">🤖 ตั้งค่า Telegram Bot</h4>
+                <button id="manageTelegramBtn" style="background: #0088cc; color: white; border: none; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-size: 12px;">📋 จัดการผู้รับ</button>
+            </div>
             <p style="font-size: 12px; color: #666; text-align: center; margin-bottom: 10px;">
                 ใส่ Bot Token ที่ได้จาก @BotFather (Token จะถูกเก็บเฉพาะเครื่องคุณเท่านั้น)
             </p>
@@ -158,14 +196,35 @@
             <p style="font-size: 11px; color: #999; text-align: center; margin-top: 10px;">
                 🔐 Token จะถูกเก็บในเบราว์เซอร์ของคุณเท่านั้น ปลอดภัย ไม่รั่วไหล
             </p>
-            <p style="font-size: 11px; color: #f0ad4e; text-align: center; margin-top: 5px;">
-                ⚠️ หากยังไม่มี Token ให้ไปสร้างที่ @BotFather ใน Telegram
-            </p>
         </div>
 
         <div class="modal-button-group" style="margin-top: 20px;">
             <button id="saveShareSettingsBtn" style="background-color: #28a745;">บันทึก</button>
             <button id="closeShareSettingsBtn" class="close-popup-btn">ปิด</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal จัดการ Telegram ผู้รับ (เพิ่ม/แก้ไข/ลบ) -->
+<div id="telegramManageModal" class="popup-overlay" style="z-index: 2100;">
+    <div class="popup-content" style="max-width: 450px; background-color: #f0f8ff; max-height: 80vh; overflow-y: auto;">
+        <h3 style="color: #0056b3; text-align: center;">จัดการผู้รับ Telegram</h3>
+        <p style="font-size: 12px; color: #666; text-align: center; margin-bottom: 15px;">เพิ่ม/แก้ไข/ลบ User หรือ Group สำหรับรับเลขเด็ด</p>
+        
+        <input type="text" id="telegramName" placeholder="ชื่อ (เช่น เพื่อน, กลุ่มบ้าน)" style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box;">
+        <input type="text" id="telegramId" placeholder="Chat ID (เช่น 123456789 หรือ -100xxxx)" style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box;">
+        <select id="telegramType" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #ccc;">
+            <option value="personal">👤 User (บุคคล)</option>
+            <option value="group">👥 Group (กลุ่ม)</option>
+        </select>
+        <button id="saveTelegramRecipientBtn" style="background: #28a745; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">💾 บันทึกผู้รับ</button>
+        
+        <hr style="margin: 15px 0;">
+        <h4 style="color: #0056b3;">📋 รายชื่อผู้รับทั้งหมด</h4>
+        <div id="telegramRecipientList" style="max-height: 300px; overflow-y: auto;"></div>
+        
+        <div class="modal-button-group" style="margin-top: 15px;">
+            <button id="closeTelegramManageBtn" class="close-popup-btn" style="background: #6c757d;">ปิด</button>
         </div>
     </div>
 </div>
@@ -195,11 +254,22 @@
 </div>
 </div>
 
-
+<!-- Modal สำหรับจัดการหมายเหตุ -->
+<div id="noteModal" class="popup-overlay">
+    <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
+        <h2 id="noteModalTitle" style="color:#0056b3; text-align:center;"></h2>
+        <input type="hidden" id="noteEditValue">
+        <input type="text" id="modalNoteText" placeholder="ข้อความหมายเหตุ">
+        <div class="modal-button-group">
+            <button id="saveNoteBtn" style="background-color:#28a745;">บันทึก</button>
+            <button id="cancelNoteBtn" class="close-popup-btn">ยกเลิก</button>
+        </div>
+    </div>
+</div>
 
 <footer>
 <div style="text-align: center; margin-bottom: 20px;">
-&copy; 2026 Juckmanphai. All Rights Reserved.
+&copy; 2025 Juckmanphai. All Rights Reserved.
 </div>
 </footer>    
 
